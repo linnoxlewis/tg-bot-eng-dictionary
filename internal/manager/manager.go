@@ -20,6 +20,7 @@ var (
 	errUserNotFound     = errors.New("user not found")
 	errCreateUser       = errors.New("creating user error")
 	errUpdateStatus     = errors.New("include learn mode error")
+	errGeneratingWords  = errors.New("generate words error")
 )
 
 func NewManager(logger *logrus.Logger,
@@ -94,4 +95,13 @@ func (m *Manager) UpdateLearnStatus(ctx context.Context, chatId int64) error {
 	}
 
 	return nil
+}
+
+func (m *Manager) GenerateTraslateWords(countWords int) ([]*models.Mean, error) {
+	words, err := m.translateService.GenerateRandomWords(countWords)
+	if err != nil {
+		return nil, errGeneratingWords
+	}
+
+	return words, nil
 }

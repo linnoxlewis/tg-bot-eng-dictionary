@@ -41,3 +41,7 @@ func (m *Mean) ToTranslateMessage(lang string) string {
 	return result
 
 }
+
+func (m *Mean) GeneratingWordsToMessage() string {
+	return fmt.Sprintf("%s - %s \n", m.Text, m.Translation.GetTranslate())
+}

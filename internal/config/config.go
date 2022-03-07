@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/joho/godotenv"
 	"os"
+	"strconv"
 )
 
 const ENV_NAME = ".env"
@@ -43,3 +44,13 @@ func (e *Config) GetTgBotName() string {
 func (e *Config) GetTgBotApiKey() string {
 	return os.Getenv("TG_BOT_API_KEY")
 }
+
+func (e *Config) GetMaxTgWord() int {
+	maxWord,err := strconv.Atoi(os.Getenv("MAX_TG_WORD"))
+	if err != nil {
+		panic(err)
+	}
+
+	return maxWord
+}
+

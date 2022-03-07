@@ -2,19 +2,27 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"linnoxlewis/tg-bot-eng-dictionary/internal/models"
+	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 const skyEngUrl = "https://dictionary.skyeng.ru/api/public/v1/"
 const searchUrl = "words/search?search="
 const meaningUrl = "meanings?ids="
 
+var maxWordId = 99997
+var errGeneratingWords = errors.New("generate words error")
+
 type TranslateInterface interface {
 	GetTranslate(word string) (*models.Word, error)
 	GetMeaning(word string) (*models.Mean, error)
+	GenerateRandomWords(countWords int) ([]*models.Mean, error)
 }
 
 type SkyEngApi struct {
@@ -47,12 +55,35 @@ func (s *SkyEngApi) GetTranslate(word string) (*models.Word, error) {
 }
 
 func (s *SkyEngApi) GetMeaning(word string) (*models.Mean, error) {
-	translate,err := s.GetTranslate(word)
+	translate, err := s.GetTranslate(word)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	meanId := translate.Meanings[0].Id
-	url := s.url + meaningUrl + strconv.Itoa(meanId)
+
+	return s.getMean(meanId)
+}
+
+func (s *SkyEngApi) GenerateRandomWords(countWords int) ([]*models.Mean, error) {
+	var model []*models.Mean
+	for i := 0; i < countWords; i++ {
+		rand.Seed(time.Now().UnixNano())
+		id := rand.Intn(maxWordId)
+		mean, err := s.getMean(id)
+		if err != nil {
+			log.Println(err)
+			return model, errGeneratingWords
+		}
+		if mean != nil {
+			model = append(model, mean)
+		}
+	}
+
+	return model, nil
+}
+
+func (s *SkyEngApi) getMean(id int) (*models.Mean, error) {
+	url := s.url + meaningUrl + strconv.Itoa(id)
 	mean := models.NewMeanIngot()
 
 	body, err := s.getRequest(url)
@@ -63,9 +94,11 @@ func (s *SkyEngApi) GetMeaning(word string) (*models.Mean, error) {
 	if err := json.Unmarshal(body, &mean); err != nil {
 		return nil, err
 	}
-	res := &mean[0]
+	if len(mean) == 0 {
+		return nil, nil
+	}
 
-	return res,err
+	return &mean[0], nil
 }
 
 func (s *SkyEngApi) getRequest(url string) ([]byte, error) {

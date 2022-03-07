@@ -2,6 +2,7 @@ package dispatcher
 
 import (
 	"context"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
 	"linnoxlewis/tg-bot-eng-dictionary/internal/config"
@@ -13,11 +14,11 @@ import (
 
 const startCommand = "/start"
 const translateCommand = "/t"
+const generateTranslateWordsCommand = "/w"
 const startLearnWord = "/learn"
 const stopLearnWord = "/stop-learn-words"
 
 var (
-	errCommandNotFound     = "Unknown command"
 	errStartBot            = "start bot error"
 	successStartMessage    = "Welcome to translate bot"
 	successSetLearnModeBot = "Start learn mode"
@@ -65,8 +66,8 @@ func (t *TgBotDispatcher) Run(ctx context.Context) {
 		argument := getArgument(msg)
 		userName := update.Message.From.String()
 		chatId := update.Message.Chat.ID
-		switch command {
 
+		switch command {
 		case startCommand:
 			user := models.NewUser(chatId, userName)
 			err := t.manager.CreateUser(ctx, user)
@@ -76,6 +77,7 @@ func (t *TgBotDispatcher) Run(ctx context.Context) {
 			}
 			t.send(chatId, successStartMessage)
 			break
+
 		case translateCommand:
 			lang := helpers.DetectLang(argument)
 			mean, err := t.manager.TranslateWordWithMeaning(argument)
@@ -85,6 +87,7 @@ func (t *TgBotDispatcher) Run(ctx context.Context) {
 			}
 			t.send(chatId, mean.ToTranslateMessage(lang))
 			break
+
 		case startLearnWord:
 			err := t.manager.UpdateLearnStatus(ctx, chatId)
 			if err != nil {
@@ -92,6 +95,20 @@ func (t *TgBotDispatcher) Run(ctx context.Context) {
 				break
 			}
 			t.send(chatId, successSetLearnModeBot)
+			break
+
+		case generateTranslateWordsCommand:
+			words, err := t.manager.GenerateTraslateWords(t.config.GetMaxTgWord())
+			if err != nil {
+				t.send(chatId, err.Error())
+				break
+			}
+			message := "Your words to learn : \n"
+			for _, value := range words {
+				valueString := value.GeneratingWordsToMessage()
+				message = message + fmt.Sprintf("%s \n", valueString)
+			}
+			t.send(chatId, message)
 			break
 
 		default:
