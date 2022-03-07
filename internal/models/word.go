@@ -1,6 +1,9 @@
 package models
 
-import "linnoxlewis/tg-bot-eng-dictionary/internal/helpers"
+import (
+	"fmt"
+	"linnoxlewis/tg-bot-eng-dictionary/internal/helpers"
+)
 
 type Word struct {
 	Id       int
@@ -22,7 +25,7 @@ func (w *Word) ToTranslateMessage(lang string) string {
 		return result + w.Text
 	} else {
 		for _, value := range w.Meanings {
-			result = result + value.Translation.Text + "\n"
+			result = result + fmt.Sprintf("<b>%s</b> \n ",value.Translation.GetTranslate())
 		}
 
 		return result

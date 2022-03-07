@@ -65,6 +65,19 @@ func (m *Manager) TranslateWord(word string) (*models.Word, error) {
 	return trl, nil
 }
 
+func (m *Manager) TranslateWordWithMeaning(word string) (*models.Mean, error) {
+	trl, err := m.translateService.GetMeaning(word)
+	if err != nil {
+		m.logger.Error(err)
+		return nil, errors.New("can not translate this word")
+	}
+	if trl == nil {
+		return nil, errors.New("translate not found")
+	}
+
+	return trl, nil
+}
+
 func (m *Manager) UpdateLearnStatus(ctx context.Context, chatId int64) error {
 	user, err := m.userRepo.GetByTgId(ctx, chatId)
 	if err != nil {

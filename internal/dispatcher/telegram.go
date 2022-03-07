@@ -13,7 +13,6 @@ import (
 
 const startCommand = "/start"
 const translateCommand = "/t"
-const meaningCommand = "/mean"
 const startLearnWord = "/learn"
 const stopLearnWord = "/stop-learn-words"
 
@@ -40,7 +39,7 @@ func NewTgBotDispatcher(config *config.Config,
 		logger.Panic(err)
 	}
 	bot.Debug = false
-	logger.Printf("бот %s работает", bot.Self.UserName)
+	logger.Printf("bot %s is working", bot.Self.UserName)
 
 	return &TgBotDispatcher{
 		bot:     bot,
@@ -77,15 +76,14 @@ func (t *TgBotDispatcher) Run(ctx context.Context) {
 			}
 			t.send(chatId, successStartMessage)
 			break
-
 		case translateCommand:
 			lang := helpers.DetectLang(argument)
-			translate, err := t.manager.TranslateWord(argument)
+			mean, err := t.manager.TranslateWordWithMeaning(argument)
 			if err != nil {
 				t.send(chatId, err.Error())
 				break
 			}
-			t.send(chatId, translate.ToTranslateMessage(lang))
+			t.send(chatId, mean.ToTranslateMessage(lang))
 			break
 		case startLearnWord:
 			err := t.manager.UpdateLearnStatus(ctx, chatId)
@@ -97,7 +95,13 @@ func (t *TgBotDispatcher) Run(ctx context.Context) {
 			break
 
 		default:
-			t.send(chatId, errCommandNotFound)
+			lang := helpers.DetectLang(command)
+			translate, err := t.manager.TranslateWord(command)
+			if err != nil {
+				t.send(chatId, err.Error())
+				break
+			}
+			t.send(chatId, translate.ToTranslateMessage(lang))
 			break
 		}
 	}
@@ -114,6 +118,7 @@ func getArgument(msg []string) string {
 
 func (t *TgBotDispatcher) send(chatId int64, message string) {
 	msg := tgbotapi.NewMessage(chatId, message)
+	msg.ParseMode = "html"
 	_, err := t.bot.Send(msg)
 	if err != nil {
 		t.logger.Println(err)

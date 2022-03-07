@@ -5,13 +5,16 @@ import (
 	"io/ioutil"
 	"linnoxlewis/tg-bot-eng-dictionary/internal/models"
 	"net/http"
+	"strconv"
 )
 
 const skyEngUrl = "https://dictionary.skyeng.ru/api/public/v1/"
 const searchUrl = "words/search?search="
+const meaningUrl = "meanings?ids="
 
 type TranslateInterface interface {
 	GetTranslate(word string) (*models.Word, error)
+	GetMeaning(word string) (*models.Mean, error)
 }
 
 type SkyEngApi struct {
@@ -41,6 +44,28 @@ func (s *SkyEngApi) GetTranslate(word string) (*models.Word, error) {
 	result := &words[0]
 
 	return result, nil
+}
+
+func (s *SkyEngApi) GetMeaning(word string) (*models.Mean, error) {
+	translate,err := s.GetTranslate(word)
+	if err != nil {
+		return nil,err
+	}
+	meanId := translate.Meanings[0].Id
+	url := s.url + meaningUrl + strconv.Itoa(meanId)
+	mean := models.NewMeanIngot()
+
+	body, err := s.getRequest(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(body, &mean); err != nil {
+		return nil, err
+	}
+	res := &mean[0]
+
+	return res,err
 }
 
 func (s *SkyEngApi) getRequest(url string) ([]byte, error) {
